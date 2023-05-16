@@ -1,0 +1,2 @@
+MAILTO=root
+* * * * * /usr/bin/python3 /root/GOGO/reuse.py

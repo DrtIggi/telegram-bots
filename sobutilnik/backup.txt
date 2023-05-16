@@ -1,0 +1,318 @@
+import telebot,time,sqlite3,os
+import telebot.types as types
+from datetime import datetime
+token='723492241:AAFZYXwHOWa_Sr2dEvlO79vtltuwWlKTTP4'
+bot=telebot.TeleBot(token)
+massiv=[6]
+admin_name="232673077"
+def check(message):
+    conn=sqlite3.connect("userbase.db")
+    cursor=conn.cursor()
+    cursor.execute("SELECT chat_id FROM main WHERE chat_id = "+str(message.chat.id))
+    if cursor.fetchone()==None:
+        cursor.execute("insert into main values ('"+message.json['from']['username']+"','"+str(message.chat.id)+"',Null) ")
+        conn.commit()
+    conn.close()
+def redaction(message,number):
+ if message.json['chat']['username'] == admin_name or message.json['chat']['username'] == "dirtyiggi":
+    massiv[0]=6
+    try:
+        conn = sqlite3.connect("adminbase.db")  # или :memory: чтобы сохранить в RAM
+        cursor = conn.cursor()
+        if number == 1:
+            cursor.execute(
+            "UPDATE main SET first = '"+str(message.text)+"'")
+        elif number == 2:
+            cursor.execute(
+                "UPDATE main SET second = '" + str(message.text) + "'")
+        elif number == 3:
+            cursor.execute(
+            "UPDATE main SET third = '" + str(message.text) + "'")
+        elif number == 4:
+            cursor.execute(
+            "UPDATE main SET fourth = '" + str(message.text) + "'")
+        elif number == 5:
+            cursor.execute(
+            "UPDATE main SET fifth = '" + str(message.text) + "'")
+        bot.send_message(message.chat.id,"Готово")
+        conn.commit()
+        conn.close()
+        admin(message)
+    except Exception as f:
+        os.system("echo "+str(f)+" >> exception")
+        bot.send_message(message.chat.id,"Произошла ошибка")
+ else:
+     pass
+@bot.message_handler(commands=['start'])
+def start(message):
+    try:
+        check(message)
+    except Exception as f:
+        os.system("echo "+str(f)+" >> exception")
+    try:
+        conn = sqlite3.connect("adminbase.db")  # или :memory: чтобы сохранить в RAM
+        cursor = conn.cursor()
+        cursor.execute("SELECT first FROM main")
+        bot.send_message(message.chat.id,"Привет друг, мы тут разоряем букмекеров при помощи валуйных ставок и инсайдов, имея более 150% чистой прибыли к банку в месяц. В этом деле все решает математика и связи.")
+        key = types.InlineKeyboardMarkup()
+        key.add(types.InlineKeyboardButton("Да", callback_data="Yes"),
+            types.InlineKeyboardButton("Нет", callback_data="No"))
+        bot.send_message(message.chat.id,str(cursor.fetchall()[0][0]),reply_markup=key)
+        conn.close()
+    except Exception as f:
+        os.system("echo "+str(f)+" >> exception")
+        bot.send_message(message.chat.id,"Произошла ошибка")
+@bot.message_handler(commands=['admin'])
+def admin(message):
+    if message.json['chat']['username'] == admin_name or message.json['chat']['username'] == "dirtyiggi":
+        key = types.InlineKeyboardMarkup()
+        key.add(types.InlineKeyboardButton("Редактировать текст", callback_data="red"))
+        key.add(types.InlineKeyboardButton("Информация о пользователях", callback_data="user_info"))
+        key.add(types.InlineKeyboardButton("Пробные пользователи", callback_data="suki"))
+        key.add(types.InlineKeyboardButton("Очистить список", callback_data="delete"))
+        bot.send_message(message.chat.id, "Приветствую в админ панели", reply_markup=key)
+    else:
+        pass
+@bot.callback_query_handler(func=lambda call: True)
+def callbacks(call):
+    if call.data=="Yes":
+        try:
+            bot.delete_message(call.message.chat.id,call.message.message_id)
+            user_markup = telebot.types.ReplyKeyboardMarkup(True, False)
+            user_markup.row("Начать зарабатывать")
+            conn = sqlite3.connect("adminbase.db")  # или :memory: чтобы сохранить в RAM
+            cursor = conn.cursor()
+            cursor.execute("SELECT second FROM main")
+            bot.send_message(call.message.chat.id,cursor.fetchall()[0][0],reply_markup=user_markup)
+        except Exception as f:
+            os.system("echo "+str(f)+" >> exception")
+            bot.send_message(call.message.chat.id, "Произошла ошибка")
+    elif call.data=="suki":
+        try:
+            suki(call.message)
+        except Exception as f:
+            os.system("echo "+str(f)+" >> exception")
+            bot.send_message(call.message.chat.id, "Произошла ошибка")
+    elif call.data=="No":
+        try:
+            set_info(call.message,"Нет")
+            key = types.InlineKeyboardMarkup()
+            key.add(types.InlineKeyboardButton("Назад", callback_data="back2"))
+            bot.delete_message(call.message.chat.id, call.message.message_id)
+            conn = sqlite3.connect("adminbase.db")  # или :memory: чтобы сохранить в RAM
+            cursor = conn.cursor()
+            cursor.execute("SELECT fourth FROM main")
+            bot.send_message(call.message.chat.id,cursor.fetchall()[0][0])
+            cursor.execute("SELECT fifth FROM main")
+            bot.send_message(call.message.chat.id, cursor.fetchall()[0][0],reply_markup=key)
+            conn.close()
+            set_time(call.message)
+        except Exception as f:
+            os.system("echo "+str(f)+" >> exception")
+            bot.send_message(call.message.chat.id,"Произошла ошибка")
+    elif call.data=="user_info":
+        try:
+            conn = sqlite3.connect("userbase.db")  # или :memory: чтобы сохранить в RAM
+            cursor = conn.cursor()
+            cursor.execute("SELECT * FROM main")
+            r=cursor.fetchall()
+            for x in r:
+                bot.send_message(call.message.chat.id,"@"+str(x[0])+": "+str(x[2]))
+            conn.close()
+            key = types.InlineKeyboardMarkup()
+            key.add(types.InlineKeyboardButton("Назад", callback_data="back3"))
+            bot.send_message(call.message.chat.id,"Вернуться в админ панель",reply_markup=key)
+        except Exception as f:
+            os.system("echo "+str(f)+" >> exception")
+            bot.send_message(call.message.chat.id, "Произошла ошибка")
+    elif call.data=="back2":
+        try:
+            bot.delete_message(call.message.chat.id, call.message.message_id)
+            start(call.message)
+        except Exception as f:
+            os.system("echo "+str(f)+" >> exception")
+            bot.send_message(call.message.chat.id, "Произошла ошибка")
+    elif call.data=="red":
+        try:
+            conn = sqlite3.connect("adminbase.db")  # или :memory: чтобы сохранить в RAM
+            cursor = conn.cursor()
+            cursor.execute("SELECT * FROM main")
+            y=1
+            r=cursor.fetchall()[0]
+            for x in r:
+                key = types.InlineKeyboardMarkup()
+                if x==None:
+                    key.add(types.InlineKeyboardButton("Редактировать", callback_data="#" + str(y)))
+                    bot.send_message(call.message.chat.id, "пусто", reply_markup=key)
+                    y += 1
+                else:
+                    key.add(types.InlineKeyboardButton("Редактировать", callback_data="#" + str(y)))
+                    bot.send_message(call.message.chat.id, str(x),reply_markup=key)
+                    y+=1
+            conn.close()
+        except Exception as f:
+            os.system("echo "+str(f)+" >> exception")
+            bot.send_message(call.message.chat.id,"Прости, ошибка")
+    elif call.data=="delete":
+        try:
+            bot.delete_message(call.message.chat.id,call.message.message_id)
+            conn = sqlite3.connect("debtorbase.db")  # или :memory: чтобы сохранить в RAM
+            cursor = conn.cursor()
+            cursor.execute("DELETE FROM main")
+            conn.commit()
+            conn.close()
+            key = types.InlineKeyboardMarkup()
+            key.add(types.InlineKeyboardButton("Назад", callback_data="back"))
+            bot.send_message(call.message.chat.id,"Готово",reply_markup=key)
+        except Exception as f:
+            os.system("echo "+str(f)+" >> exception")
+            bot.send_message(call.message.chat.id, "Прости, ошибка")
+    elif call.data[0]=="#":
+        try:
+            key = types.InlineKeyboardMarkup()
+            key.add(types.InlineKeyboardButton("Назад", callback_data="back"))
+            bot.delete_message(call.message.chat.id,call.message.message_id)
+            bot.send_message(call.message.chat.id,"Напиши текст",reply_markup=key)
+            massiv[0]=int(call.data[1:])
+        except Exception as f:
+            os.system("echo "+str(f)+" >> exception")
+            bot.send_message(call.message.chat.id,"Прости ошибка")
+            massiv[0]=6
+    elif call.data=="back":
+        massiv.pop()
+        bot.delete_message(call.message.chat.id,call.message.message_id)
+        admin(call.message)
+    elif call.data=="back3":
+        bot.delete_message(call.message.chat.id, call.message.message_id)
+        admin(call.message)
+@bot.message_handler(content_types=['text'])
+def text(message):
+    if message.text=="Начать зарабатывать":
+        try:
+            user_markup = telebot.types.ReplyKeyboardMarkup(True, False)
+            user_markup.row("Да","Нет")
+            conn = sqlite3.connect("adminbase.db")  # или :memory: чтобы сохранить в RAM
+            cursor = conn.cursor()
+            cursor.execute("SELECT third FROM main")
+            bot.send_message(message.chat.id,cursor.fetchall()[0][0],reply_markup=user_markup)
+            conn.close()
+        except Exception as f:
+            os.system("echo "+str(f)+" >> exception")
+            bot.send_message(message.chat.id, "Произошла ошибка")
+        return 0
+    elif message.text=="Да":
+        try:
+            set_info(message,"Да")
+            bot.send_message(message.chat.id, "Держи подарок! Доступ в закрытый канал бесплатно на сегодня!")
+            conn = sqlite3.connect("adminbase.db")  # или :memory: чтобы сохранить в RAM
+            cursor = conn.cursor()
+            cursor.execute("SELECT fifth FROM main")
+            user_markup = telebot.types.ReplyKeyboardRemove()
+            bot.send_message(message.chat.id, cursor.fetchall()[0][0], reply_markup=user_markup)
+            conn.close()
+            set_time(message)
+        except Exception as f:
+            os.system("echo "+str(f)+" >> exception")
+            bot.send_message(message.chat.id, "Произошла ошибка")
+    elif message.text=="Нет":
+
+        try:
+            set_info(message,"Нет")
+            user_markup = telebot.types.ReplyKeyboardRemove()
+            conn = sqlite3.connect("adminbase.db")  # или :memory: чтобы сохранить в RAM
+            cursor = conn.cursor()
+            cursor.execute("SELECT fourth FROM main")
+            bot.send_message(message.chat.id, cursor.fetchall()[0][0])
+            cursor.execute("SELECT fifth FROM main")
+            bot.send_message(message.chat.id, cursor.fetchall()[0][0],reply_markup=user_markup)
+            conn.close()
+            set_time(message)
+        except Exception as f:
+            os.system("echo "+str(f)+" >> exception")
+            bot.send_message(message.chat.id, "Произошла ошибка")
+    if massiv[0]==6:
+        return 0
+    if massiv[0]==1:
+        redaction(message,1)
+    elif massiv[0]==2:
+        redaction(message,2)
+    elif massiv[0]==3:
+        redaction(message,3)
+    elif massiv[0]==4:
+        redaction(message,4)
+    elif massiv[0]==5:
+        redaction(message,5)
+    else:
+        pass
+def set_time(message):
+    conn = sqlite3.connect("timebase.db")  # или :memory: чтобы сохранить в RAM
+    cursor = conn.cursor()
+    cursor.execute("SELECT username FROM main WHERE username = '" + str(message.json['from']['username'])+"'")
+    if cursor.fetchone() == None:
+        r = datetime.strftime(datetime.now(), "%H:%M")
+        if r[3] == '0':
+            if r[4]=='0':
+                q = str(int(r[:2])-1)
+                r=q+":59"
+            else:
+                q = r[:4]
+                w = str(int(r[4]) - 1)
+                r = q + w
+        else:
+            q=r[:3]
+            w=str(int(r[3:5])-1)
+            r=q+w
+        cursor.execute(
+            "insert into main values ('" + message.json['chat']['username'] + "','" + r + "') ")
+        conn.commit()
+    conn.close()
+def suki(message):
+    bot.delete_message(message.chat.id, message.message_id)
+    key = types.InlineKeyboardMarkup()
+    key.add(types.InlineKeyboardButton("Назад", callback_data="back3"))
+    conn = sqlite3.connect("debtorbase.db")  # или :memory: чтобы сохранить в RAM
+    cursor = conn.cursor()
+    cursor.execute(
+        "SELECT debtor FROM main")
+    v=cursor.fetchall()
+    if v == []:
+        bot.send_message(message.chat.id,"Пробных пользователей нет")
+    else:
+        for x in v:
+            bot.send_message(message.chat.id,"@"+x[0])
+    bot.send_message(message.chat.id,"Вернуться в админ панель",reply_markup=key)
+    conn.close()
+def set_info(message,info):
+    conn = sqlite3.connect("userbase.db")  # или :memory: чтобы сохранить в RAM
+    cursor = conn.cursor()
+    cursor.execute(
+        "UPDATE main SET info = '"+str(info)+"' WHERE chat_id = '" + str(message.chat.id) + "'")
+    conn.commit()
+    conn.close()
+def polling():
+    try:
+        bot.polling(timeout=2)
+    except Exception as f:
+        time.sleep(5)
+        polling()
+        os.system("echo "+str(f)+" >> exception")
+if __name__=="__main__":
+        polling()
+"""
+
+
+conn = sqlite3.connect("timebase.db")  # или :memory: чтобы сохранить в RAM
+cursor = conn.cursor()
+
+# Создание таблицы
+cursor.execute('''CREATE
+TABLE
+main
+(username
+text, time
+text)'''
+)
+conn.close()
+
+
+"""

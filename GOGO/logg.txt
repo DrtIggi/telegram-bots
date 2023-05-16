@@ -1,0 +1,2 @@
+ 
+A request to the Telegram API was unsuccessful. Error code: 400 Description: Bad Request: message to delete not found
